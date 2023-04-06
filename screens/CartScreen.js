@@ -4,8 +4,14 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { useDispatch, useSelector } from 'react-redux'
 import { Ionicons } from '@expo/vector-icons'
 import { useNavigation, useRoute } from '@react-navigation/native'
-import { decrementtQuantity, incrementQuantity } from '../CartReducer'
+import {
+  clearCart,
+  decrementtQuantity,
+  incrementQuantity,
+} from '../CartReducer'
 import { decrementtQty, incrementQty } from '../ProductReducer'
+import { doc, setDoc } from 'firebase/firestore'
+import { auth, db } from '../firebase'
 
 const CartScreen = () => {
   const cart = useSelector((state) => state.cart.cart)
@@ -14,7 +20,22 @@ const CartScreen = () => {
     .map((item) => item.quantity * item.price)
     .reduce((curr, prev) => curr + prev, 0)
   const navigation = useNavigation()
+  const userUid = auth.currentUser.uid
   const dispatch = useDispatch()
+  const placeOrder = async () => {
+    navigation.navigate('Order')
+    dispatch(clearCart())
+    await setDoc(
+      doc(db, 'users', `${userUid}`),
+      {
+        orders: { ...cart },
+        pickUpDetails: route.params,
+      },
+      {
+        merge: true,
+      }
+    )
+  }
 
   return (
     <>
@@ -337,7 +358,7 @@ const CartScreen = () => {
               Extra charges may apply
             </Text>
           </View>
-          <Pressable>
+          <Pressable onPress={placeOrder}>
             <Text style={{ fontSize: 17, fontWeight: '600', color: 'white' }}>
               Place Order
             </Text>
